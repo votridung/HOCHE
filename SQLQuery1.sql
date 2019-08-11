@@ -415,3 +415,94 @@ SELECT A.MAKH,  A.TENKH, A.DIACHI, A.DT, A.EMAIL
 			HAVING SUM(C.GIABAN * SL) >= '10000000'
 
 EXEC C10
+
+--1.	Viết hàm tính doanh thu của năm, với năm là tham số truyền vào.
+GO 
+
+CREATE FUNCTION C51(@X INT)
+RETURNS BIGINT 
+AS 
+BEGIN	
+	DECLARE @DOANHTHU BIGINT 
+	SELECT @DOANHTHU = SUM(SL*GIABAN)
+	FROM HOADON A, CTHD B
+	WHERE A.MAHD=B.MAHD AND YEAR(NGAY)=@X
+    RETURN @DOANHTHU
+END
+--2.	Viết hàm tính doanh thu của tháng, năm, với tháng và năm là 2 tham số truyền vào.
+GO 
+
+CREATE FUNCTION C52(@X INT,@Y INT)
+RETURNS BIGINT 
+AS 
+BEGIN	
+	DECLARE @DOANHTHU BIGINT 
+	SELECT @DOANHTHU = SUM(SL*GIABAN)
+	FROM HOADON A, CTHD B
+	WHERE A.MAHD=B.MAHD AND YEAR(NGAY)=@X AND MONTH(NGAY)=@Y
+    RETURN @DOANHTHU
+END
+--3.	Viết hàm tính doanh thu của khách hàng với mã khách hàng là tham số truyền vào.
+GO 
+
+CREATE FUNCTION C53(@X VARCHAR(5))
+RETURNS BIGINT 
+AS 
+BEGIN	
+	DECLARE @DOANHTHU BIGINT 
+	SELECT @DOANHTHU = SUM(SL*GIABAN)
+	FROM HOADON A, CTHD B
+	WHERE A.MAHD=B.MAHD AND A.MAKH = @X
+    RETURN @DOANHTHU
+END
+--4.	Viết hàm tính tổng số lượng bán được cho từng mặt hàng theo tháng, năm nào đó. 
+--Với mã hàng, tháng và năm là các tham số truyền vào, nếu tháng không nhập vào tức là tính tất cả các tháng.
+GO
+
+CREATE FUNCTION C54(@MAVT VARCHAR(5), @THANG INT)
+RETURNS BIGINT 
+AS 
+BEGIN	
+	DECLARE @TONGSL BIGINT 
+	IF(@THANG IS NULL)
+	BEGIN 
+		SELECT @TONGSL = SUM(SL)
+		FROM HOADON A, CTHD B
+		WHERE A.MAHD=B.MAHD AND B.MAVT = @MAVT 
+	END
+	ELSE 
+	BEGIN
+		SELECT @TONGSL = SUM(SL)
+		FROM HOADON A, CTHD B
+		WHERE A.MAHD=B.MAHD AND B.MAVT='VT01' AND MONTH(A.NGAY) = 5
+	END
+	RETURN @TONGSL
+END
+
+DECLARE @MAVT VARCHAR(5), @THANG INT
+SET @MAVT = 'VT01'
+SET @THANG = 5
+PRINT 'TONG SL BAN CUA: ' +CAST(@MAVT AS VARCHAR) + ' LA : ' +CAST(DBO.C54(@MAVT,@THANG)AS VARCHAR)
+--5.	Viết hàm tính lãi ((giá bán – giá mua ) * số lượng bán được) cho từng mặt hàng, 
+--với mã mặt hàng là tham số truyền vào. Nếu mã mặt hàng không truyền vào thì tính cho tất cả các mặt hàng.
+GO
+
+CREATE FUNCTION C55(@MAVT VARCHAR(5))
+RETURNS BIGINT 
+AS 
+BEGIN	
+	DECLARE @LAI BIGINT 
+	IF(@MAVT IS NULL)
+	BEGIN 
+		SELECT @LAI = (GIABAN-GIAMUA)*SL
+		FROM VATTU A, CTHD B
+		WHERE B.MAVT = A.MAVT 
+	END
+	ELSE 
+	BEGIN
+		SELECT GIABAN, GIAMUA, SL,(GIABAN-GIAMUA)*SL
+		FROM VATTU A, CTHD B
+		WHERE B.MAVT = A.MAVT AND  A.MAVT = 'VT01'
+	END
+	RETURN @LAI
+END
